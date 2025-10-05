@@ -26,6 +26,9 @@ struct MapT {
 	sf::Keyboard::Key primaryLeft, primaryRight, primaryUp, primaryDown;
 
 	MapSize width, height;
+
+	std::unique_ptr<sf::Font> mainFont;
+	std::unique_ptr<sf::Text> bannerText;
 };
 
 std::list<EntityDesc>* GetLayout(Map map, const std::string& input) {
@@ -59,6 +62,8 @@ int CreateMap(Map* map, unsigned blkSz, unsigned offX, unsigned offY) {
 	(*map)->primaryDown = sf::Keyboard::Key::Down;
 	(*map)->primaryLeft = sf::Keyboard::Key::Left;
 	(*map)->primaryRight = sf::Keyboard::Key::Right;
+	(*map)->mainFont.reset(new sf::Font{"./data/DancingScript-Regular.ttf"});
+	(*map)->bannerText.reset(new sf::Text{*(*map)->mainFont});
 	return Result::Success;
 }
 
@@ -118,8 +123,11 @@ int RenderMap(Map map, sf::RenderWindow* win) {
 
 	renderLayout(map->emptyLayout, sf::Color(28, 72, 107, 255));
 	renderLayout(map->wallLayout, sf::Color(77, 52, 43, 255));
+	renderLayout(map->enemyLayout, sf::Color::Red);
+	renderLayout(map->enemyBossLayout, sf::Color::Red);
 	renderLayout(map->playerLayout, sf::Color(40, 163, 82, 255));
 
+	win->draw(*map->bannerText);	
 	return Result::Success;
 }
 
@@ -157,33 +165,77 @@ bool collide(Map map, const EntityDesc& object) {
 	return false;
 }
 
-int UpdateMap(Map map) {
-	auto& primaryPlayer = map->playerLayout.front();
-	if (primaryPlayer.left > map->blockOffsetX / map->blockSize) {
-		updateOnKeyPress(map, map->primaryLeft, primaryPlayer, false, true);
-		if (collide(map, primaryPlayer))
-			++primaryPlayer.left;
+bool killCheck(Map map, const EntityDesc& object) {
+	for (const auto& e : map->enemyLayout) {
+		if (object.left == e.left && object.top == e.top)
+			return true;
+	}
+	for (const auto& e : map->enemyBossLayout) {
+		if (object.left == e.left && object.top == e.top)
+			return true;
+	}
+	return false;
+}
+
+int UpdateMap(Map map, sf::RenderWindow* win) {
+	static bool update = true;
+	static bool won = false;
+	if (update) {
+		auto& primaryPlayer = map->playerLayout.front();
+		if (primaryPlayer.left > map->blockOffsetX / map->blockSize) {
+			updateOnKeyPress(map, map->primaryLeft, primaryPlayer, false, true);
+			if (collide(map, primaryPlayer))
+				++primaryPlayer.left;
+		}
+
+		if (primaryPlayer.left < map->width - map->blockOffsetX / map->blockSize - 1) {
+			updateOnKeyPress(map, map->primaryRight, primaryPlayer, true, true);
+			if (collide(map, primaryPlayer))
+				--primaryPlayer.left;
+		}
+
+		if (primaryPlayer.top > map->blockOffsetX / map->blockSize) {
+			updateOnKeyPress(map, map->primaryUp, primaryPlayer, false, false);
+			if (collide(map, primaryPlayer))
+				++primaryPlayer.top;
+		}
+
+		if (primaryPlayer.top < map->height - map->blockOffsetY / map->blockSize + 1) {
+			updateOnKeyPress(map, map->primaryDown, primaryPlayer, true, false);
+			if (collide(map, primaryPlayer))
+				--primaryPlayer.top;
+		}
+
+		for (auto& enemy : map->enemyBossLayout) {
+			if (enemy.top > map->blockOffsetX / map->blockSize) {
+				++enemy.top;
+			}
+
+			if (enemy.top < map->height - map->blockOffsetY / map->blockSize + 1) {
+				--enemy.top;
+			}
+		}
+
+		if (killCheck(map, primaryPlayer)) {
+			std::cerr << "Hit enemy" << std::endl;
+			update = false;
+		}
+	}
+	else {
+		sf::RectangleShape banner{};
+		banner.setSize(sf::Vector2f(map->width / 2, map->height / 2));
+		auto& text = *map->bannerText;
+		text.setCharacterSize(60);
+		if (won) {
+			text.setString("You Win");
+			text.setFillColor(sf::Color::Green);
+		}
+		else {
+			text.setString("You Loose");
+			text.setFillColor(sf::Color::Red);
+		}
 	}
 
-	if (primaryPlayer.left < map->width - map->blockOffsetX / map->blockSize - 1) {
-		updateOnKeyPress(map, map->primaryRight, primaryPlayer, true, true);
-		if (collide(map, primaryPlayer))
-			--primaryPlayer.left;
-	}
-
-	if (primaryPlayer.top > map->blockOffsetX / map->blockSize) {
-		updateOnKeyPress(map, map->primaryUp, primaryPlayer, false, false);
-		if (collide(map, primaryPlayer))
-			++primaryPlayer.top;
-	}
-
-	if (primaryPlayer.top < map->height - map->blockOffsetY / map->blockSize + 1) {
-		updateOnKeyPress(map, map->primaryDown, primaryPlayer, true, false);
-		if (collide(map, primaryPlayer))
-			--primaryPlayer.top;
-	}
-
-		
 	return Result::Success;
 }
 }

@@ -36,6 +36,7 @@ int main(int argc, char** argv)
 	}
 
 	sf::RenderWindow window(sf::VideoMode({winSize.width, winSize.height}), "LazyMaze", sf::Style::None);
+	window.setPosition({0,0});
 	auto timeBegin = std::chrono::system_clock::now();
 
 	while (window.isOpen()) {
@@ -46,7 +47,7 @@ int main(int argc, char** argv)
 
 		auto now = std::chrono::system_clock::now();
 		if (std::chrono::duration_cast<std::chrono::milliseconds>(now - timeBegin) > std::chrono::milliseconds(40)) {
-			lm::UpdateMap(map);
+			lm::UpdateMap(map, &window);
 			window.clear();
 			lm::RenderMap(map, &window);
 			window.display();

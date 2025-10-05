@@ -23,5 +23,5 @@ void DestroyMap(Map);
 
 int ReadMap(Map, MapSize width, MapSize height, const std::string& src);
 int RenderMap(Map, sf::RenderWindow*);
-int UpdateMap(Map);
+int UpdateMap(Map, sf::RenderWindow*);
 }
