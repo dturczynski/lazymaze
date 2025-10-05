@@ -16,6 +16,7 @@ using MapSize = unsigned;
 struct EntityDesc {
 	MapSize left, width;
 	MapSize top, height;
+	bool changeDirection{false};
 };
 
 int CreateMap(Map*, unsigned blockSize, unsigned offsetX = 0, unsigned offsetY = 0);

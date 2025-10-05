@@ -49,7 +49,7 @@ std::list<EntityDesc>* GetLayout(Map map, const std::string& input) {
 	else if (input == "Enemy")
 		return &map->enemyLayout;
 	else if (input == "EnemyBoss")
-		return &map->enemyLayout;
+		return &map->enemyBossLayout;
 	else return &map->emptyLayout;
 }
 
@@ -125,6 +125,7 @@ int RenderMap(Map map, sf::RenderWindow* win) {
 	renderLayout(map->wallLayout, sf::Color(77, 52, 43, 255));
 	renderLayout(map->enemyLayout, sf::Color::Red);
 	renderLayout(map->enemyBossLayout, sf::Color::Red);
+	renderLayout(map->finishAreaLayout, sf::Color::Yellow);
 	renderLayout(map->playerLayout, sf::Color(40, 163, 82, 255));
 
 	win->draw(*map->bannerText);	
@@ -207,25 +208,42 @@ int UpdateMap(Map map, sf::RenderWindow* win) {
 		}
 
 		for (auto& enemy : map->enemyBossLayout) {
-			if (enemy.top > map->blockOffsetX / map->blockSize) {
-				++enemy.top;
+			if (!enemy.changeDirection) {
+				if (enemy.top > map->blockOffsetX / map->blockSize) {
+					if (!emptyExist(map, enemy))
+						map->emptyLayout.push_back({enemy.left, map->blockSize, enemy.top,
+								map->blockSize});
+					--enemy.top;
+				}
+				else enemy.changeDirection = true;
 			}
-
-			if (enemy.top < map->height - map->blockOffsetY / map->blockSize + 1) {
-				--enemy.top;
+			else {
+				if (enemy.top < map->height - map->blockOffsetY / map->blockSize + 1) {
+					if (!emptyExist(map, enemy))
+						map->emptyLayout.push_back({enemy.left, map->blockSize, enemy.top,
+								map->blockSize});
+					++enemy.top;
+				}
+				else
+					enemy.changeDirection = false;
 			}
 		}
 
 		if (killCheck(map, primaryPlayer)) {
-			std::cerr << "Hit enemy" << std::endl;
+			update = false;
+		}
+
+		auto exit = map->finishAreaLayout.front();
+		if (exit.left == primaryPlayer.left && exit.top == primaryPlayer.top) {
+			won = true;
 			update = false;
 		}
 	}
 	else {
-		sf::RectangleShape banner{};
-		banner.setSize(sf::Vector2f(map->width / 2, map->height / 2));
 		auto& text = *map->bannerText;
 		text.setCharacterSize(60);
+		text.setPosition(sf::Vector2f((win->getSize().x - text.getGlobalBounds().size.x) / 2.f,
+					(win->getSize().y - text.getGlobalBounds().size.y) / 2.f));
 		if (won) {
 			text.setString("You Win");
 			text.setFillColor(sf::Color::Green);
