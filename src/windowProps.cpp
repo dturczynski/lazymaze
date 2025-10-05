@@ -5,7 +5,8 @@ namespace {
 std::vector<std::pair<unsigned, unsigned>> supportedSizes() { 
 	return {
 		{1920, 1080},
-		{1000, 1000}
+		{1000, 1000},
+		{640, 480}
 	};
 }
 }
