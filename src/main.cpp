@@ -43,6 +43,8 @@ int main(int argc, char** argv)
 		while (const std::optional event = window.pollEvent()) {
 				if (event->is<sf::Event::Closed>())
 						window.close();
+				else if (auto eptr = event->getIf<sf::Event::KeyPressed>(); eptr && eptr->code == sf::Keyboard::Key::Escape)
+						window.close();
 		}
 
 		auto now = std::chrono::system_clock::now();
